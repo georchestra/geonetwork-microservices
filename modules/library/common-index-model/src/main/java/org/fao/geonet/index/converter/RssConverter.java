@@ -24,7 +24,7 @@ import org.fao.geonet.index.model.gn.ResourceDate;
 import org.fao.geonet.index.model.rss.Enclosure;
 import org.fao.geonet.index.model.rss.Guid;
 import org.fao.geonet.index.model.rss.Item;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,9 +32,9 @@ import org.springframework.stereotype.Component;
 public class RssConverter {
 
   public static DateTimeFormatter rssDateFormat = DateTimeFormatter.RFC_1123_DATE_TIME;
-  private static String BASE_URL;
-  @Value("${gn.baseurl}")
-  String baseUrl;
+
+  @Autowired
+  FormatterConfiguration formatterConfiguration;
 
   /**
    * Convert JSON index document _source node to RSS Item.
@@ -46,7 +46,7 @@ public class RssConverter {
    *
    * <p>Validation: https://validator.w3.org/feed/check.cgi
    */
-  public static Item convert(ObjectNode doc) {
+  public Item convert(ObjectNode doc) {
     try {
       IndexRecord record = new ObjectMapper()
           .readValue(doc.get(IndexRecordFieldNames.source).toString(), IndexRecord.class);
@@ -59,7 +59,7 @@ public class RssConverter {
       item.setGuid(guid);
       item.setTitle(record.getResourceTitle().get(defaultText));
       item.setDescription(buildDescription(record));
-      item.setLink(buildLandingPageLink(record));
+      item.setLink(formatterConfiguration.buildLandingPageLink(record.getMetadataIdentifier()));
 
       Optional<Overview> overview = record.getOverview().stream().findFirst();
       if (overview.isPresent()) {
@@ -113,22 +113,8 @@ public class RssConverter {
     return null;
   }
 
-  private static String buildDescription(IndexRecord record) {
+  private String buildDescription(IndexRecord record) {
     return record.getResourceAbstract().get(defaultText);
   }
 
-  /**
-   * Build link to items landing page.
-   */
-  public static String buildLandingPageLink(IndexRecord record) {
-    return String.format("%s/collections/%s/items/%s",
-        BASE_URL,
-        "main",
-        record.getMetadataIdentifier());
-  }
-
-  @Value("${gn.baseurl}")
-  public void setNameStatic(String baseurl) {
-    RssConverter.BASE_URL = baseurl;
-  }
 }
