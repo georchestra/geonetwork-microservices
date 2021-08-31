@@ -1,0 +1,9 @@
+FROM openjdk:11-jre
+
+EXPOSE 8080
+
+ENV JAVA_OPTS=
+
+ADD ./modules/services/searching/target/searching.jar /opt/app/searching.jar
+
+CMD exec java $JAVA_OPTS -jar /opt/app/searching.jar
