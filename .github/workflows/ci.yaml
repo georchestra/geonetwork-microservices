@@ -29,7 +29,7 @@ jobs:
     - name: "Generate an artifact"
       if: github.repository == 'georchestra/geonetwork-microservices' && github.ref == 'refs/heads/geor-main'
       run: |
-        ./mvnw --no-transfer-progress -Dsearch_without_sql -B -f modules/services/searching/  \
+        ./mvnw --offline --no-transfer-progress -Dsearch_without_sql -B -f modules/services/searching/  \
           clean package spring-boot:repackage
 
     - name: "publish the jar"
