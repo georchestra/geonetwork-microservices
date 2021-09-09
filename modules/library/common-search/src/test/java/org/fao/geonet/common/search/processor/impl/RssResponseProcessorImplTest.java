@@ -77,6 +77,18 @@ public class RssResponseProcessorImplTest {
 		assertFalse(diff.hasDifferences());
 	}
 
+  @Test
+  public void nominalOneItemSxt() throws Exception {
+    formatterConfiguration.setLinkToLegacyGN4(false);
+
+    InputStream is = this.getClass().getResourceAsStream("es_flow_sxt.json");
+    ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+    toTest.processResponse(null, is, os,	null, null, null);
+
+    /* nothing thrown ? all good */
+  }
+
 	@Test
 	public void nominalOneItemToGn4() throws Exception {
 		formatterConfiguration.setLinkToLegacyGN4(true);
