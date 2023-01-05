@@ -25,19 +25,19 @@ jobs:
     - name: "Generate an artifact"
       if: github.repository == 'georchestra/geonetwork-microservices' && github.ref == 'refs/heads/geor-main-2301'
       run: |
-        ./mvnw --offline --no-transfer-progress -Dsearch_without_sql -B -f modules/services/searching/  \
+        ./mvnw --offline --no-transfer-progress -Dsearch_without_sql -B -f modules/services/ogc-api-records/  \
           clean package spring-boot:repackage
 
     - name: "publish the jar"
       if: github.repository == 'georchestra/geonetwork-microservices' && github.ref == 'refs/heads/geor-main-2301'
       uses: actions/upload-artifact@v1
       with:
-        name: searching.jar
-        path: modules/services/searching/target/searching.jar
+        name: gn-ogc-api-records.jar
+        path: modules/services/ogc-api-records/target/gn-ogc-api-records.jar
 
     - name: "Generate a docker image"
       if : github.repository == 'georchestra/geonetwork-microservices' && github.ref == 'refs/heads/geor-main-2301'
-      run : docker build -f Dockerfile-searching -t georchestra/gn-cloud-searching:latest .
+      run : docker build -f Dockerfile-ogc-api-records -t georchestra/gn-cloud-ogc-api-records-service:geor-main-2301 .
 
     - name: "Login onto docker.io"
       uses: azure/docker-login@v1
@@ -49,4 +49,4 @@ jobs:
     - name: "publish the docker image on docker-hub"
       if: github.repository == 'georchestra/geonetwork-microservices' && github.ref == 'refs/heads/geor-main-2301'
       run: |
-        docker push docker.io/georchestra/gn-cloud-searching:latest
+        docker push docker.io/georchestra/gn-cloud-ogc-api-records-service:geor-main-2301
