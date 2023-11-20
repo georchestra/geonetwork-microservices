@@ -4,6 +4,9 @@ EXPOSE 8080
 
 ENV JAVA_OPTS=-Dfile.encoding=UTF-8
 
+COPY docker/ /
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+
 ADD ./modules/services/ogc-api-records/target/gn-ogc-api-records.jar /opt/app/gn-ogc-api-records.jar
 
 CMD exec java $JAVA_OPTS -jar /opt/app/gn-ogc-api-records.jar

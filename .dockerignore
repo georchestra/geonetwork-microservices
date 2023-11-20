@@ -1,3 +1,4 @@
 *
 !modules/services/searching/target/searching.jar
 !modules/services/ogc-api-records/target/gn-ogc-api-records.jar
+!docker/
