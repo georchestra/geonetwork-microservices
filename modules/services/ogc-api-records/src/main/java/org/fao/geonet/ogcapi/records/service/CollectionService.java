@@ -65,16 +65,18 @@ public class CollectionService {
   /**
    * Retrieves the ElasticSearch filter related to a collection.
    */
-  public String retrieveCollectionFilter(Source source) {
+  public String retrieveCollectionFilter(Source source, boolean escape) {
     String collectionFilter = "";
 
     if (source.getType() == SourceType.subportal) {
       collectionFilter = source.getFilter();
     } else if (source.getType() == SourceType.harvester) {
-      collectionFilter = String.format("+harvesterUuid:\\\"%s\\\"", source.getUuid());
+      collectionFilter = String.format("+harvesterUuid:\"%s\"", source.getUuid());
     }
 
-    return collectionFilter;
+    return escape
+        ? collectionFilter.replace("\"", "\\\"")
+        : collectionFilter;
   }
 
   /**
@@ -83,7 +85,7 @@ public class CollectionService {
   public List<String> getSortables(Source source) {
     List<String> sortables = new ArrayList<>();
 
-    Optional<UiSetting> uiSetting = null;
+    Optional<UiSetting> uiSetting = Optional.empty();
     if (source.getType() == SourceType.portal) {
       uiSetting = uiSettingsRepository.findById("srv");
     } else if (source.getUiConfig() != null) {
@@ -92,12 +94,12 @@ public class CollectionService {
 
     if (uiSetting.isPresent()) {
       UiSetting uiSettingValue = uiSetting.get();
-      String configuration = uiSettingValue.getConfiguration();
+      String uiSettingValueConfiguration = uiSettingValue.getConfiguration();
 
       try {
         ObjectMapper mapper = new ObjectMapper();
         JsonFactory factory = mapper.getFactory();
-        JsonParser parser = factory.createParser(configuration);
+        JsonParser parser = factory.createParser(uiSettingValueConfiguration);
         JsonNode actualObj = mapper.readTree(parser);
 
         JsonNode sortbyValues = actualObj.get("mods").get("search").get("sortbyValues");
