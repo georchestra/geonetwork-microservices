@@ -15,16 +15,18 @@
 -	**Where to file issues**:  
      [https://github.com/georchestra/georchestra/issues](https://github.com/georchestra/georchestra/issues)
 
+     [https://github.com/geonetwork/geonetwork-microservices/issues](https://github.com/geonetwork/geonetwork-microservices/issues)
+
 -	**Supported architectures**:   
      [`amd64`](https://hub.docker.com/r/amd64/docker/)
 
 -	**Source of this description**:  
-     [docs repo's directory](https://github.com/georchestra/georchestra/blob/master/DOCKER_HUB.md)
+     [docs repo's directory](https://github.com/georchestra/geonetwork-microservices/blob/geor-main/DOCKER_HUB_searching.md)
 
-# What is `georchestra/gn-cloud-ogc-api-records-service`
+# What is `georchestra/gn-cloud-searching`
 
-**Gn-cloud-ogc-api-records-service** is a module for geOrchestra which offers :
-- better Search Engine Optimization by implementing an OGC API records service with a landing page builder mechanism
+**Gn-cloud-searching** is a module for geOrchestra which offers :
+- a search service is an Elasticsearch proxy taking care of user privileges
 
 # How to use this image
 
@@ -32,11 +34,10 @@ As for every other geOrchestra webapp, its configuration resides in the data dir
 
 It is recommended to use the official docker composition: https://github.com/georchestra/docker.
 
-For this specific component, see the section `ogc-api-records` in the [`georchestra/docker/docker-compose.yml`](https://github.com/georchestra/docker/blob/master/docker-compose.yml) file.
 
 ## Where is it built
 
-This image is build using the Dockerfile : `Dockerfile-ogc-api-records` in the repo https://github.com/georchestra/geonetwork-microservices/.
+This image is build using the Dockerfile : `Dockerfile-searching` in the repo https://github.com/georchestra/geonetwork-microservices/.
 
 # License
 
