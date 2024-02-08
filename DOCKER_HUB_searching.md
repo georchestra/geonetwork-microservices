@@ -4,7 +4,7 @@
       [georchestra.org](https://www.georchestra.org/)
 
 -    **Where to get help**:  
-     the [Georchestra Github repo](https://github.com/georchestra/georchestra), [IRC chat](https://kiwiirc.com/nextclient/irc.libera.chat/georchestra), Stack Overflow
+     the [geOrchestra Github repo](https://github.com/georchestra/georchestra), [IRC chat](https://kiwiirc.com/nextclient/irc.libera.chat/georchestra), Stack Overflow
 
 # Featured tags
 
@@ -37,7 +37,7 @@ It is recommended to use the official docker composition: https://github.com/geo
 
 ## Where is it built
 
-This image is build using the Dockerfile : `Dockerfile-searching` in the repo https://github.com/georchestra/geonetwork-microservices/.
+This image is built using the Dockerfile : `Dockerfile-searching` in the repo https://github.com/georchestra/geonetwork-microservices/.
 
 # License
 
@@ -46,5 +46,4 @@ View [license information](https://www.georchestra.org/software.html) for the so
 As with all Docker images, these likely also contain other software which may be under other licenses (such as Bash, etc from the base distribution, along with any direct or indirect dependencies of the primary software being contained).
 
 [//]: # (Some additional license information which was able to be auto-detected might be found in [the `repo-info` repository's georchestra/ directory]&#40;&#41;.)
-
-As for any pre-built image usage, it is the image user's responsibility to ensure that any use of this image complies with any relevant licenses for all software contained within.
+As for any docker image, it is the user's responsibility to ensure that usages of this image comply with any relevant licenses for all software contained within.

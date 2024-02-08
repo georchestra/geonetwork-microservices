@@ -69,8 +69,8 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
         repository: georchestra/gn-cloud-ogc-api-records-service
-        readme-filepath: ./DOCKER_HUB.md
-        short-description: 'OGC API Records module for geOrchestra SDI'
+        readme-filepath: ./DOCKER_HUB_ogc.md
+        short-description: 'OGC API Records module for the geOrchestra SDI'
 
     - name: "Update Docker Hub Description for GN cloud Searching"
       if: github.ref == 'refs/heads/geor-main' && github.repository == 'georchestra/geonetwork-microservices' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'
@@ -79,5 +79,5 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
         repository: georchestra/gn-cloud-searching
-        readme-filepath: ./DOCKER_HUB.md
-        short-description: 'GN cloud searching module for geOrchestra SDI'
+        readme-filepath: ./DOCKER_HUB_searching.md
+        short-description: 'GN cloud searching module for the geOrchestra SDI'
