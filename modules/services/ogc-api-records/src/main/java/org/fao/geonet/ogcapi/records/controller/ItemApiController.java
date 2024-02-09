@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,6 +63,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -86,6 +86,10 @@ import springfox.documentation.annotations.ApiIgnore;
 @Slf4j(topic = "org.fao.geonet.ogcapi.records")
 public class ItemApiController {
 
+  public static final String EXCEPTION_COLLECTION_NOT_FOUND =
+      "ogcapir.exception.collection.notFound";
+  public static final String EXCEPTION_COLLECTION_ITEM_NOT_FOUND =
+      "ogcapir.exception.collectionItem.notFound";
   @Autowired
   ElasticSearchProxy proxy;
   @Autowired
@@ -145,7 +149,7 @@ public class ItemApiController {
 
     if (source == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-          messages.getMessage("ogcapir.exception.collection.notFound",
+          messages.getMessage(EXCEPTION_COLLECTION_NOT_FOUND,
               new String[]{collectionId},
               request.getLocale()));
     }
@@ -153,21 +157,26 @@ public class ItemApiController {
     List<MediaType> allowedMediaTypes =
         ListUtils.union(MediaTypeUtil.defaultSupportedMediaTypes,
             MediaTypeUtil.ldSupportedMediaTypes);
+    allowedMediaTypes.add(GnMediaType.APPLICATION_GEOJSON);
 
     MediaType mediaType =
         mediaTypeUtil.calculatePriorityMediaTypeFromRequest(request, allowedMediaTypes);
 
 
-    if (mediaType.equals(MediaType.APPLICATION_JSON)) {
+    if (mediaType.equals(MediaType.APPLICATION_JSON)
+        || mediaType.equals(GnMediaType.APPLICATION_GEOJSON)) {
       try {
-        JsonNode record = getRecordAsJson(collectionId, recordId, request, source, "json");
+        String type = mediaType.equals(MediaType.APPLICATION_JSON) ? "json" : "geojson";
+        JsonNode recordAsJson = getRecordAsJson(collectionId, recordId, request, source, type);
 
         streamResult(response,
-            record.toPrettyString(),
+            recordAsJson.toPrettyString(),
             MediaType.APPLICATION_JSON_VALUE);
         return ResponseEntity.ok().build();
       } catch (Exception ex) {
-        // TODO: Log exception
+        log.error(String.format(
+            "An error occurred while describing a collection item '%s'. Error is: %s",
+            collectionId, ex.getMessage()));
         throw new RuntimeException(ex);
       }
 
@@ -298,7 +307,7 @@ public class ItemApiController {
               || GnMediaType.APPLICATION_RDF_XML_VALUE.equals(acceptHeader);
       boolean isLinkedData = (isTurtle || isRdfXml || isDcat);
 
-      JsonNode record = getRecordAsJson(collectionId, recordId, request, source,
+      JsonNode recordAsJson = getRecordAsJson(collectionId, recordId, request, source,
           isLinkedData ? "json" : "schema.org");
 
       if (isLinkedData) {
@@ -309,7 +318,7 @@ public class ItemApiController {
         marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-        CatalogRecord catalogRecord = dcatConverter.convert(record);
+        CatalogRecord catalogRecord = dcatConverter.convert(recordAsJson);
         StringWriter sw = new StringWriter();
         marshaller.marshal(catalogRecord, sw);
         String dcatXml = sw.toString();
@@ -331,12 +340,15 @@ public class ItemApiController {
 
       } else {
         streamResult(response,
-            record.toString(),
+            recordAsJson.toString(),
             GnMediaType.APPLICATION_JSON_LD_VALUE);
       }
       return ResponseEntity.ok().build();
     } catch (Exception ex) {
-      // TODO: Log exception
+      log.error(String.format(
+          "An error occurred while building JSON-LD representation of collection '%s'. "
+              + "Error is: %s",
+          source.getName(), ex.getMessage()));
       throw new RuntimeException(ex);
     }
 
@@ -353,13 +365,13 @@ public class ItemApiController {
 
     if (source == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-          messages.getMessage("ogcapir.exception.collection.notFound",
+          messages.getMessage(EXCEPTION_COLLECTION_NOT_FOUND,
               new String[]{collectionId},
               request.getLocale()));
     }
 
     try {
-      String collectionFilter = collectionService.retrieveCollectionFilter(source);
+      String collectionFilter = collectionService.retrieveCollectionFilter(source, true);
       String query = recordsEsQueryBuilder.buildQuerySingleRecord(recordId, collectionFilter, null);
 
       String queryResponse = proxy.searchAndGetResult(request.getSession(), request, query, null);
@@ -370,7 +382,7 @@ public class ItemApiController {
 
       if (Integer.parseInt(total) == 0) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-            messages.getMessage("ogcapir.exception.collectionItem.notFound",
+            messages.getMessage(EXCEPTION_COLLECTION_ITEM_NOT_FOUND,
                 new String[]{recordId, collectionId},
                 request.getLocale()));
       }
@@ -382,7 +394,9 @@ public class ItemApiController {
 
       return ResponseEntity.ok().build();
     } catch (Exception ex) {
-      // TODO: Log exception
+      log.error(String.format(
+          "An error occurred while building XML representation of collection '%s'. Error is: %s",
+          source.getName(), ex.getMessage()));
       throw new RuntimeException(ex);
     }
   }
@@ -405,10 +419,10 @@ public class ItemApiController {
     try {
       JsonNode recordAsJson = getRecordAsJson(collectionId, recordId, request, source, "json");
 
-      Metadata record = metadataRepository.findOneByUuid(recordId);
-      if (record == null) {
+      Metadata metadataRecord = metadataRepository.findOneByUuid(recordId);
+      if (metadataRecord == null) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-            messages.getMessage("ogcapir.exception.collectionItem.notFound",
+            messages.getMessage(EXCEPTION_COLLECTION_ITEM_NOT_FOUND,
                 new String[]{recordId, collectionId},
                 request.getLocale()));
       }
@@ -429,18 +443,21 @@ public class ItemApiController {
       modelSource.setOutputFormats(searchConfiguration.getFormats(Operations.item));
       modelSource.setCollection(source);
       modelSource.setItems(List.of(
-          new Item(recordId, null, record.getData())
+          new Item(recordId, null, metadataRecord.getData())
       ));
 
       model.addAttribute("source", modelSource.toSource());
-      viewUtility.addi18n(model, locale, List.of(record.getDataInfo().getSchemaId()), request);
+      viewUtility.addi18n(model, locale, List.of(metadataRecord.getDataInfo().getSchemaId()),
+          request);
 
       View view = viewResolver.resolveViewName("ogcapir/item", locale);
       view.render(model.asMap(), request, response);
 
       return ResponseEntity.ok().build();
     } catch (Exception ex) {
-      // TODO: Log exception
+      log.error(String.format(
+          "An error occurred while building HTML representation of collection '%s'. Error is: %s",
+          source.getName(), ex.getMessage()));
       throw new RuntimeException(ex);
     }
   }
@@ -452,7 +469,7 @@ public class ItemApiController {
       HttpServletRequest request,
       Source source,
       String type) throws Exception {
-    String collectionFilter = collectionService.retrieveCollectionFilter(source);
+    String collectionFilter = collectionService.retrieveCollectionFilter(source, true);
     String query = recordsEsQueryBuilder.buildQuerySingleRecord(recordId, collectionFilter, null);
 
     String queryResponse = proxy.searchAndGetResult(request.getSession(), request, query, null);
@@ -469,23 +486,26 @@ public class ItemApiController {
 
     if ((totalValue == null) || (totalValue.intValue() == 0)) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-          messages.getMessage("ogcapir.exception.collectionItem.notFound",
+          messages.getMessage(EXCEPTION_COLLECTION_ITEM_NOT_FOUND,
               new String[]{recordId, collectionId},
               request.getLocale()));
     }
 
-    return "json".equals(type)
-        ? actualObj.get("hits").get("hits").get(0)
-        : actualObj.get("dataFeedElement").get(0);
+    if ("json".equals(type)) {
+      return actualObj.get("hits").get("hits").get(0);
+    } else {
+      String elementName = "schema.org".equals(type) ? "dataFeedElement" : "features";
+      return actualObj.get(elementName).get(0);
+    }
   }
 
 
   private List<String> setDefaultRssSortBy(List<String> sortby, HttpServletRequest request) {
     boolean isRss = "rss".equals(request.getParameter("f"))
-        || (request.getHeader("Accept") != null
-            && request.getHeader("Accept").contains(MediaType.APPLICATION_RSS_XML_VALUE));
+        || (request.getHeader(HttpHeaders.ACCEPT) != null
+            && request.getHeader(HttpHeaders.ACCEPT).contains(MediaType.APPLICATION_RSS_XML_VALUE));
     if (isRss
-        && (sortby == null || sortby.size() == 0)) {
+        && (sortby == null || sortby.isEmpty())) {
       sortby = new ArrayList<>();
       sortby.add("-" + IndexRecordFieldNames.dateStamp);
     }
@@ -511,7 +531,7 @@ public class ItemApiController {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unable to find collection");
     }
 
-    String collectionFilter = collectionService.retrieveCollectionFilter(source);
+    String collectionFilter = collectionService.retrieveCollectionFilter(source, false);
     String query = recordsEsQueryBuilder
         .buildQuery(q, externalids, bbox,
             startindex, limit, collectionFilter, sortby,
@@ -519,7 +539,10 @@ public class ItemApiController {
     try {
       return proxy.searchAndGetResult(request.getSession(), request, query, null);
     } catch (Exception ex) {
-      // TODO: Log exception
+      log.error(String.format(
+          "An error occurred while searching. Error is: %s",
+          ex.getMessage()));
+
       throw new RuntimeException(ex);
     }
   }
@@ -579,7 +602,7 @@ public class ItemApiController {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unable to find collection");
     }
 
-    String collectionFilter = collectionService.retrieveCollectionFilter(source);
+    String collectionFilter = collectionService.retrieveCollectionFilter(source, false);
     String query = recordsEsQueryBuilder
         .buildQuery(q, externalids, bbox, startindex, limit, collectionFilter, sortby, null);
     EsSearchResults results = new EsSearchResults();
