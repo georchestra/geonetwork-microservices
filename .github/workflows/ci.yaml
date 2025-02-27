@@ -30,7 +30,7 @@ jobs:
 
     - name: "publish the jar"
       if: github.repository == 'georchestra/geonetwork-microservices' && github.ref == 'refs/heads/geor-main'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: gn-ogc-api-records.jar
         path: modules/services/ogc-api-records/target/gn-ogc-api-records.jar
