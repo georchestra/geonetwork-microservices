@@ -178,6 +178,9 @@
                   <goal>build-image</goal>
                 </goals>
                 <configuration>
+                  <jvmArguments>
+                    -XX:MaxRAMPercentage=80 -XX:+UseParallelGC
+                  </jvmArguments>
                   <layers>
                     <enabled>true</enabled>
                   </layers>
